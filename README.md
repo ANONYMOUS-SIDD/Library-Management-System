@@ -2,9 +2,6 @@
 
 A **production‑ready** web application for managing library operations, built with **Flask** (Python) and **PostgreSQL**. It provides a seamless experience for both **students** (patrons) and **librarians** (admins).
 
-- **Live Demo:** (not deployed yet)
-- **GitHub:** [your-repo-url]
-
 ---
 
 ## ✨ Features

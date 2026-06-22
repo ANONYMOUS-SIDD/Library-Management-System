@@ -1,0 +1,57 @@
+# ============================================================
+# Library Management System – Git Ignore
+# ============================================================
+
+# ---------- Virtual Environment ----------
+venv/
+env/
+ENV/
+envs/
+
+# ---------- Sensitive Configuration ----------
+.env
+.env.local
+.env.*.local
+
+# ---------- Python Cache ----------
+__pycache__/
+*.pyc
+*.pyo
+*.py[cd]
+
+# ---------- Logs ----------
+*.log
+logs/
+
+# ---------- IDE / Editor ----------
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ---------- OS Specific ----------
+.DS_Store
+Thumbs.db
+
+# ---------- Backup Files ----------
+*.bak
+*.tmp
+
+# ---------- SQLite Database (if any) ----------
+*.db
+*.sqlite
+*.sqlite3
+
+# ---------- Flask Instance Folder ----------
+instance/
+
+# ---------- Testing ----------
+.pytest_cache/
+.coverage
+htmlcov/
+
+# ---------- Distribution ----------
+dist/
+build/
+*.egg-info/
+*.egg

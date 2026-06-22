@@ -1,0 +1,1171 @@
+<!--
+  ============================================================
+  Complete Frontend Tester For The Library Management System
+  ============================================================
+  This Single HTML File Provides A User Interface To Test All
+  API Endpoints Of The Library Management System Backend.
+
+  It Includes:
+    - A Clean, Responsive Layout With A Two-Column Grid.
+    - Authentication (Login, Logout, Register).
+    - All Student Features: Profile, Search, Summary, Holds,
+      Lists, Tags, Suggestions, Messages.
+    - All Librarian Features: Checkout, Return, Add Book,
+      Manage Suggestions, View All Holds.
+
+  The JavaScript Client (LMSConnection) Is Embedded And Provides
+  A Clean API Wrapper Matching The Python connection.py File.
+
+  All UI Functions Use This Client To Send Requests To The
+  Backend Server (Default: http://localhost:5000).
+
+  To Use:
+    1. Ensure The Flask Backend Is Running (python run.py).
+    2. Open This File In A Browser (Serve With A Web Server
+       Or Open Directly; CORS Must Be Enabled On The Backend).
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Library System – Complete Frontend</title>
+
+    <!--
+      ============================================================
+      CSS Styling
+      ============================================================
+      Provides A Modern, Clean Interface With:
+        - Responsive Grid Layout.
+        - Color-Coded Buttons And Status Indicators.
+        - Fixed Toast Notification System.
+        - Collapsible Output Boxes For API Responses.
+    -->
+    <style>
+        /* Reset And Base Styles */
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            background: #f0f4f8;
+            padding: 20px;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header With Status And Token Display */
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 20px;
+            border-radius: 8px 8px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        header h1 {
+            margin: 0;
+            font-weight: 300;
+        }
+        .status {
+            background: #34495e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+
+        /* Two-Column Layout For Panels */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        /* Each Panel Is A White Card */
+        .panel {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .panel h3 {
+            margin-top: 0;
+            color: #2980b9;
+            border-bottom: 1px solid #ecf0f1;
+            padding-bottom: 8px;
+        }
+
+        /* Flexible Row For Input Groups */
+        .flex {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Form Elements */
+        input, select, button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover { background: #2980b9; }
+        button.danger {
+            background: #e74c3c;
+        }
+        button.danger:hover { background: #c0392b; }
+        button.success {
+            background: #27ae60;
+        }
+        button.success:hover { background: #1e8449; }
+        button.outline {
+            background: transparent;
+            color: #3498db;
+            border: 1px solid #3498db;
+        }
+        button.outline:hover {
+            background: #3498db;
+            color: white;
+        }
+
+        /* Output Box For API Responses */
+        .output {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 12px;
+            border-radius: 4px;
+            max-height: 250px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            margin-top: 10px;
+        }
+        .output.error { background: #c0392b; }
+        .output.success { background: #1e8449; }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 999;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .toast.show { opacity: 1; }
+        .toast.error { background: #e74c3c; }
+        .toast.success { background: #27ae60; }
+
+        /* Button Group For Quick Logins */
+        .btn-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin: 5px 0;
+        }
+
+        /* Responsive: Single Column On Small Screens */
+        @media (max-width: 800px) {
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        /* Token Display Box */
+        .token-box {
+            background: #f1c40f;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        /* Informational Note Box */
+        .note {
+            background: #f39c12;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- Header -->
+    <header>
+        <h1>📚 Library System – Complete Frontend</h1>
+        <div>
+            <span class="status" id="userStatus">🔴 Not logged in</span>
+            <span class="token-box" id="tokenDisplay">Token: none</span>
+        </div>
+    </header>
+
+    <!-- Toast Notification Container -->
+    <div id="toast" class="toast"></div>
+
+    <!-- ============================================================
+         AUTHENTICATION PANEL
+         ============================================================
+         Provides Login, Logout, Quick Login For Test Users,
+         And User Registration.
+    -->
+    <div class="panel">
+        <h3>🔐 Authentication</h3>
+        <div class="flex">
+            <input type="email" id="loginEmail" placeholder="Email" value="test@example.com">
+            <input type="password" id="loginPassword" placeholder="Password" value="secret123">
+            <button onclick="login()">Login</button>
+            <button onclick="logout()" class="danger">Logout</button>
+        </div>
+        <div class="btn-group">
+            <button onclick="quickLogin('bob@example.com','bob123')">Bob (Student)</button>
+            <button onclick="quickLogin('alice@example.com','alice123')">Alice (Student)</button>
+            <button onclick="quickLogin('test@example.com','secret123')" class="success">Librarian</button>
+        </div>
+        <div style="margin-top:10px;">
+            <span>Register: </span>
+            <input type="text" id="regName" placeholder="Name" value="John Doe" style="width:120px;">
+            <input type="email" id="regEmail" placeholder="Email" value="john@example.com" style="width:150px;">
+            <input type="password" id="regPassword" placeholder="Password" value="john123" style="width:120px;">
+            <select id="regRole">
+                <option value="student">Student</option>
+                <option value="librarian">Librarian</option>
+            </select>
+            <button onclick="register()">Register</button>
+        </div>
+        <div class="note">
+            ⚠️ Make sure your Flask server is running on
+            <strong>http://localhost:5000</strong> and CORS is enabled.
+        </div>
+    </div>
+
+    <!-- ============================================================
+         MAIN GRID WITH TWO COLUMNS
+         ============================================================
+         Left Column: Student Features
+         Right Column: Librarian Features
+    -->
+    <div class="main-grid">
+
+        <!-- ============================================================
+             LEFT COLUMN – STUDENT FEATURES
+             ============================================================ -->
+        <div>
+
+            <!-- Profile Panel -->
+            <div class="panel">
+                <h3>👤 Profile</h3>
+                <button onclick="getProfile()">Get Profile</button>
+                <button onclick="updateProfile()">Update Profile (set contact)</button>
+                <div class="output" id="profileOutput">Click to load profile...</div>
+            </div>
+
+            <!-- Book Search Panel -->
+            <div class="panel">
+                <h3>🔎 Book Search</h3>
+                <div class="flex">
+                    <input type="text" id="searchQuery" placeholder="Search term" value="Harry">
+                    <button onclick="searchBooks()">Search</button>
+                </div>
+                <div class="output" id="searchOutput">Search results will appear here.</div>
+            </div>
+
+            <!-- Active Loans Summary Panel -->
+            <div class="panel">
+                <h3>📖 Active Loans Summary</h3>
+                <button onclick="getSummary()">Get Summary</button>
+                <div class="output" id="summaryOutput">Click to load summary.</div>
+            </div>
+
+            <!-- Holds Management Panel -->
+            <div class="panel">
+                <h3>📌 Holds</h3>
+                <div class="flex">
+                    <input type="number" id="holdBookId" placeholder="Book ID" value="1" style="width:80px;">
+                    <button onclick="placeHold()">Place Hold</button>
+                    <button onclick="getMyHolds()">My Holds</button>
+                    <input type="number" id="cancelHoldId" placeholder="Hold ID" style="width:80px;">
+                    <button onclick="cancelHold()">Cancel</button>
+                </div>
+                <div class="output" id="holdsOutput">Hold actions appear here.</div>
+            </div>
+
+            <!-- Reading Lists Panel -->
+            <div class="panel">
+                <h3>📋 Reading Lists</h3>
+                <div class="flex">
+                    <input type="text" id="listName" placeholder="List name" value="Favorites">
+                    <button onclick="createList()">Create</button>
+                    <button onclick="getLists()">My Lists</button>
+                </div>
+                <div class="flex">
+                    <input type="number" id="addListItemListId" placeholder="List ID" style="width:80px;">
+                    <input type="number" id="addListItemBookId" placeholder="Book ID" style="width:80px;" value="1">
+                    <button onclick="addListItem()">Add Book</button>
+                </div>
+                <div class="flex">
+                    <input type="number" id="getListItemsListId" placeholder="List ID" style="width:80px;">
+                    <button onclick="getListItems()">View Items</button>
+                </div>
+                <div class="output" id="listOutput">List actions appear here.</div>
+            </div>
+
+            <!-- Tags Panel -->
+            <div class="panel">
+                <h3>🏷️ Tags</h3>
+                <div class="flex">
+                    <input type="number" id="tagBookId" placeholder="Book ID" value="1" style="width:80px;">
+                    <input type="text" id="tagText" placeholder="Tag" value="fiction">
+                    <button onclick="addTag()">Add</button>
+                    <button onclick="getTags()">My Tags</button>
+                    <input type="number" id="deleteTagId" placeholder="Tag ID" style="width:80px;">
+                    <button onclick="deleteTag()">Delete</button>
+                </div>
+                <div class="output" id="tagOutput">Tag actions appear here.</div>
+            </div>
+
+            <!-- Purchase Suggestions Panel (Student) -->
+            <div class="panel">
+                <h3>💡 Purchase Suggestions (Student)</h3>
+                <div class="flex">
+                    <input type="text" id="suggestionTitle" placeholder="Title" value="The Pragmatic Programmer">
+                    <input type="text" id="suggestionAuthor" placeholder="Author" value="David Thomas">
+                    <input type="text" id="suggestionNotes" placeholder="Notes" value="Great book">
+                </div>
+                <div class="flex">
+                    <button onclick="submitSuggestion()">Submit</button>
+                    <button onclick="getMySuggestions()">My Suggestions</button>
+                </div>
+                <div class="output" id="suggestionOutput">Suggestion actions appear here.</div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             RIGHT COLUMN – LIBRARIAN FEATURES
+             ============================================================ -->
+        <div>
+
+            <!-- Checkout / Return Panel -->
+            <div class="panel">
+                <h3>📦 Checkout / Return</h3>
+                <div class="flex">
+                    <input type="number" id="checkoutUserId" placeholder="User ID" value="3" style="width:90px;">
+                    <input type="number" id="checkoutCopyId" placeholder="Copy ID" value="2" style="width:90px;">
+                    <button onclick="checkout()">Checkout</button>
+                </div>
+                <div class="flex">
+                    <input type="number" id="returnLoanId" placeholder="Loan ID" style="width:90px;">
+                    <button onclick="returnBook()">Return</button>
+                </div>
+                <div class="output" id="circulationOutput">Circulation actions appear here.</div>
+            </div>
+
+            <!-- Add Book Panel -->
+            <div class="panel">
+                <h3>📕 Add Book</h3>
+                <div class="flex" style="flex-wrap:wrap;">
+                    <input type="text" id="addTitle" placeholder="Title" value="Dune" style="flex:1 1 120px;">
+                    <input type="text" id="addIsbn" placeholder="ISBN" value="9780441172719" style="flex:1 1 100px;">
+                    <input type="text" id="addCallNumber" placeholder="Call #" value="PS3558.U73" style="flex:1 1 100px;">
+                    <input type="text" id="addPublisher" placeholder="Publisher" value="Chilton Books" style="flex:1 1 100px;">
+                    <input type="date" id="addPublishedDate" placeholder="Date" value="1965-08-01" style="flex:1 1 100px;">
+                    <input type="text" id="addLocation" placeholder="Location" value="Sci-Fi" style="flex:1 1 100px;">
+                    <input type="number" id="addTotalCopies" placeholder="Copies" value="1" style="width:80px;">
+                </div>
+                <button onclick="addBook()">Add Book</button>
+                <div class="output" id="addBookOutput">Add book response.</div>
+            </div>
+
+            <!-- Manage Suggestions Panel (Librarian) -->
+            <div class="panel">
+                <h3>💬 Manage Suggestions</h3>
+                <button onclick="viewAllSuggestions()">View All</button>
+                <div class="flex" style="margin-top:8px;">
+                    <input type="number" id="updateSuggestionId" placeholder="Suggestion ID" style="width:100px;">
+                    <select id="updateSuggestionStatus">
+                        <option value="pending">Pending</option>
+                        <option value="reviewed">Reviewed</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                    <button onclick="updateSuggestion()">Update</button>
+                </div>
+                <div class="output" id="suggestionMgmtOutput">Management actions appear here.</div>
+            </div>
+
+            <!-- View All Holds Panel (Librarian) -->
+            <div class="panel">
+                <h3>📌 All Pending Holds</h3>
+                <button onclick="viewAllHolds()">View</button>
+                <div class="output" id="allHoldsOutput">Pending holds appear here.</div>
+            </div>
+
+            <!-- Messages Panel -->
+            <div class="panel">
+                <h3>✉️ Messages</h3>
+                <button onclick="getMessages()">Get Messages</button>
+                <div class="flex">
+                    <input type="number" id="markReadMessageId" placeholder="Message ID" style="width:100px;">
+                    <button onclick="markMessageRead()">Mark Read</button>
+                </div>
+                <div class="output" id="messageOutput">Messages appear here.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     EMBEDDED JAVASCRIPT CLIENT (connection.js)
+     ============================================================
+     This Client Provides A Clean Wrapper Around All API Endpoints.
+     It Handles Authentication, Token Storage, And Request Sending
+     With Automatic JSON Parsing And Error Handling.
+-->
+<script>
+    // ------------------------------------------------------------
+    // API Base URL – Change To Match Your Backend Server Address.
+    // ------------------------------------------------------------
+    const API_BASE = 'http://localhost:5000';
+
+    /**
+     * Main Client Class For Interacting With The Library API.
+     */
+    class LMSConnection {
+        constructor(baseUrl = API_BASE) {
+            this.baseUrl = baseUrl.replace(/\/+$/, '');  // Remove trailing slashes.
+            this.token = null;   // JWT Token Stored After Login.
+            this.user = null;    // User Object From Login Response.
+        }
+
+        /**
+         * Internal Method To Send HTTP Requests.
+         *
+         * @param {string} method - HTTP Method (GET, POST, PUT, DELETE).
+         * @param {string} endpoint - API Endpoint (e.g., '/login').
+         * @param {object|null} data - Request Payload Or Query Parameters.
+         * @param {boolean} auth - Whether To Include The JWT Token.
+         * @returns {Promise<Array>} - [responseData, statusCode].
+         */
+        async _request(method, endpoint, data = null, auth = true) {
+            // Build The Full URL.
+            let url = this.baseUrl + endpoint;
+
+            // Prepare Request Headers.
+            const headers = { 'Content-Type': 'application/json' };
+            if (auth && this.token) {
+                headers['Authorization'] = `Bearer ${this.token}`;
+            }
+
+            // Prepare Fetch Options.
+            const options = { method, headers };
+
+            // For GET Requests, Append Data As Query String.
+            if (method === 'GET' && data) {
+                const params = new URLSearchParams(data).toString();
+                url += (url.includes('?') ? '&' : '?') + params;
+            } else if (data) {
+                // For Other Methods, Send Data As JSON Body.
+                options.body = JSON.stringify(data);
+            }
+
+            try {
+                const response = await fetch(url, options);
+                const text = await response.text();  // Read As Text To Handle Non-JSON.
+                let json;
+                try {
+                    json = JSON.parse(text);
+                } catch (e) {
+                    json = { raw: text };  // Fallback If Response Is Not JSON.
+                }
+                return [json, response.status];
+            } catch (error) {
+                // Network Errors Or Other Exceptions.
+                return [{ error: error.message }, 500];
+            }
+        }
+
+        // ---------- Authentication Endpoints ----------
+
+        /** Register A New User. */
+        async register(name, email, password, role = 'student', contact_info = null) {
+            const data = { name, email, password, role };
+            if (contact_info) data.contact_info = contact_info;
+            return this._request('POST', '/register', data, false);
+        }
+
+        /** Log In A User And Store The Token. */
+        async login(email, password) {
+            const [result, status] = await this._request('POST', '/login', { email, password }, false);
+            if (status === 200) {
+                this.token = result.token;
+                this.user = result.user;
+            }
+            return [result, status];
+        }
+
+        // ---------- User Profile Endpoints ----------
+
+        /** Get The Profile Of The Authenticated User. */
+        async get_profile() {
+            return this._request('GET', '/api/users/me', null, true);
+        }
+
+        /** Update The Profile Of The Authenticated User. */
+        async update_profile(name = null, contact_info = null, photo_path = null) {
+            const data = {};
+            if (name !== null) data.name = name;
+            if (contact_info !== null) data.contact_info = contact_info;
+            if (photo_path !== null) data.photo_path = photo_path;
+            return this._request('PUT', '/api/users/me', data, true);
+        }
+
+        /** Change The User's Password. */
+        async change_password(old_password, new_password) {
+            return this._request('PUT', '/api/users/me/password', { old_password, new_password }, true);
+        }
+
+        // ---------- Loans And Checkouts ----------
+
+        /** Get Active Loans Summary. */
+        async get_summary() {
+            return this._request('GET', '/api/users/me/summary', null, true);
+        }
+
+        /** Get Checkout History (Returned Loans). */
+        async get_checkout_history() {
+            return this._request('GET', '/api/users/me/checkout-history', null, true);
+        }
+
+        /** Get Outstanding Fines. */
+        async get_charges() {
+            return this._request('GET', '/api/users/me/charges', null, true);
+        }
+
+        /** Pay A Specific Fine. */
+        async pay_fine(loan_id) {
+            return this._request('POST', '/api/users/me/payfine', { loan_id }, true);
+        }
+
+        /** Renew An Active Loan. */
+        async renew_loan(loan_id) {
+            return this._request('PUT', `/api/loans/${loan_id}/renew`, null, true);
+        }
+
+        /** Checkout A Book (Librarian). */
+        async checkout(user_id, copy_id) {
+            return this._request('POST', '/api/loans', { user_id, copy_id }, true);
+        }
+
+        /** Return A Book (Librarian). */
+        async return_book(loan_id) {
+            return this._request('PUT', `/api/loans/${loan_id}/return`, null, true);
+        }
+
+        // ---------- Books ----------
+
+        /** Search Books (Public). */
+        async search_books(query, limit = 20) {
+            return this._request('GET', '/api/books', { q: query, limit }, false);
+        }
+
+        /** Add A New Book (Librarian). */
+        async add_book(title, isbn = null, call_number = null, publisher = null,
+                       published_date = null, location = null, total_copies = 1, summary = null) {
+            const data = { title, isbn, call_number, publisher, published_date, location, total_copies, summary };
+            // Remove Null Values To Avoid Sending Empty Fields.
+            Object.keys(data).forEach(key => data[key] === null && delete data[key]);
+            return this._request('POST', '/api/books', data, true);
+        }
+
+        // ---------- Holds ----------
+
+        /** Place A Hold On A Book. */
+        async place_hold(book_id) {
+            return this._request('POST', '/api/holds', { book_id }, true);
+        }
+
+        /** Get Holds For The Authenticated User. */
+        async get_my_holds() {
+            return this._request('GET', '/api/users/me/holds', null, true);
+        }
+
+        /** Get All Pending Holds (Librarian). */
+        async get_all_holds() {
+            return this._request('GET', '/api/holds', null, true);
+        }
+
+        /** Fulfill A Hold (Librarian). */
+        async fulfill_hold(hold_id) {
+            return this._request('PUT', `/api/holds/${hold_id}/fulfill`, null, true);
+        }
+
+        /** Cancel A Hold. */
+        async cancel_hold(hold_id) {
+            return this._request('PUT', `/api/holds/${hold_id}/cancel`, null, true);
+        }
+
+        // ---------- Search History ----------
+
+        /** Get Search History. */
+        async get_search_history() {
+            return this._request('GET', '/api/users/me/search-history', null, true);
+        }
+
+        /** Record A Search Query. */
+        async add_search(query) {
+            return this._request('POST', '/api/users/me/search-history', { query }, true);
+        }
+
+        // ---------- Reading Lists ----------
+
+        /** Get All Lists For The User. */
+        async get_lists() {
+            return this._request('GET', '/api/users/me/lists', null, true);
+        }
+
+        /** Create A New List. */
+        async create_list(list_name) {
+            return this._request('POST', '/api/users/me/lists', { list_name }, true);
+        }
+
+        /** Delete A List (Owner Only). */
+        async delete_list(list_id) {
+            return this._request('DELETE', `/api/lists/${list_id}`, null, true);
+        }
+
+        /** Rename A List (Owner Only). */
+        async rename_list(list_id, new_name) {
+            return this._request('PUT', `/api/lists/${list_id}`, { list_name: new_name }, true);
+        }
+
+        /** Add A Book To A List. */
+        async add_list_item(list_id, book_id) {
+            return this._request('POST', `/api/lists/${list_id}/items`, { book_id }, true);
+        }
+
+        /** Remove A Book From A List. */
+        async remove_list_item(list_id, book_id) {
+            return this._request('DELETE', `/api/lists/${list_id}/items/${book_id}`, null, true);
+        }
+
+        /** Get All Books In A List. */
+        async get_list_items(list_id) {
+            return this._request('GET', `/api/lists/${list_id}/items`, null, true);
+        }
+
+        // ---------- Tags ----------
+
+        /** Get All Tags Created By The User. */
+        async get_tags() {
+            return this._request('GET', '/api/users/me/tags', null, true);
+        }
+
+        /** Add A Tag To A Book. */
+        async add_tag(book_id, tag_text) {
+            return this._request('POST', '/api/tags', { book_id, tag: tag_text }, true);
+        }
+
+        /** Delete A Tag (Owner Only). */
+        async delete_tag(tag_id) {
+            return this._request('DELETE', `/api/tags/${tag_id}`, null, true);
+        }
+
+        // ---------- Purchase Suggestions ----------
+
+        /** Submit A Purchase Suggestion. */
+        async create_suggestion(title, author = null, notes = null) {
+            const data = { title };
+            if (author) data.author = author;
+            if (notes) data.notes = notes;
+            return this._request('POST', '/api/suggestions', data, true);
+        }
+
+        /** Get Suggestions Submitted By The User. */
+        async get_my_suggestions() {
+            return this._request('GET', '/api/users/me/suggestions', null, true);
+        }
+
+        /** Get All Suggestions (Librarian). */
+        async get_all_suggestions() {
+            return this._request('GET', '/api/suggestions', null, true);
+        }
+
+        /** Update Suggestion Status (Librarian). */
+        async update_suggestion(suggestion_id, status) {
+            return this._request('PUT', `/api/suggestions/${suggestion_id}`, { status }, true);
+        }
+
+        // ---------- Messages ----------
+
+        /** Get Messages For The User. */
+        async get_messages(unread_only = false) {
+            const params = unread_only ? { unread: 'true' } : {};
+            return this._request('GET', '/api/users/me/messages', params, true);
+        }
+
+        /** Mark A Message As Read. */
+        async mark_message_read(message_id) {
+            return this._request('PUT', `/api/users/me/messages/${message_id}/read`, null, true);
+        }
+    }
+
+    // ------------------------------------------------------------
+    // Global Default Instance And Convenience Functions
+    // ------------------------------------------------------------
+    // These Match The Python connection.py Functions For Easy Migration.
+    const _default_client = new LMSConnection();
+
+    // Authentication
+    function signin(email, password) { return _default_client.login(email, password); }
+    function signup(name, email, password, role = 'student', contact_info = null) {
+        return _default_client.register(name, email, password, role, contact_info);
+    }
+
+    // Profile
+    function get_profile() { return _default_client.get_profile(); }
+    function update_profile(name = null, contact_info = null, photo_path = null) {
+        return _default_client.update_profile(name, contact_info, photo_path);
+    }
+
+    // Books
+    function search_books(query, limit = 20) { return _default_client.search_books(query, limit); }
+
+    // Holds
+    function place_hold(book_id) { return _default_client.place_hold(book_id); }
+    function get_my_holds() { return _default_client.get_my_holds(); }
+    function cancel_hold(hold_id) { return _default_client.cancel_hold(hold_id); }
+    function get_all_holds() { return _default_client.get_all_holds(); }
+    function fulfill_hold(hold_id) { return _default_client.fulfill_hold(hold_id); }
+
+    // Summary
+    function get_summary() { return _default_client.get_summary(); }
+
+    // Librarian
+    function checkout(user_id, copy_id) { return _default_client.checkout(user_id, copy_id); }
+    function return_book(loan_id) { return _default_client.return_book(loan_id); }
+    function add_book(title, options = {}) {
+        return _default_client.add_book(
+            title,
+            options.isbn,
+            options.call_number,
+            options.publisher,
+            options.published_date,
+            options.location,
+            options.total_copies,
+            options.summary
+        );
+    }
+
+    // Suggestions
+    function get_my_suggestions() { return _default_client.get_my_suggestions(); }
+    function get_all_suggestions() { return _default_client.get_all_suggestions(); }
+    function update_suggestion(suggestion_id, status) {
+        return _default_client.update_suggestion(suggestion_id, status);
+    }
+
+    // Messages
+    function get_messages(unread_only = false) { return _default_client.get_messages(unread_only); }
+    function mark_message_read(message_id) { return _default_client.mark_message_read(message_id); }
+
+    // ------------------------------------------------------------
+    // UI LOGIC – Handles User Interactions And Updates The Page.
+    // ------------------------------------------------------------
+    // These Functions Are Called By The Onclick Handlers In The HTML.
+    // They Use The Convenience Functions Above To Call The API And
+    // Display Results In The Output Boxes.
+
+    let token = null;
+    let user = null;
+
+    /** Show A Temporary Toast Notification. */
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast');
+        toast.textContent = message;
+        toast.className = 'toast ' + type;
+        toast.classList.add('show');
+        clearTimeout(toast._timeout);
+        toast._timeout = setTimeout(() => toast.classList.remove('show'), 4000);
+    }
+
+    /** Update The Status Bar With Current Login State. */
+    function updateStatus() {
+        const statusEl = document.getElementById('userStatus');
+        const tokenEl = document.getElementById('tokenDisplay');
+        if (_default_client.token && _default_client.user) {
+            statusEl.textContent =
+                `🟢 Logged in as ${_default_client.user.name} (${_default_client.user.role})`;
+            statusEl.style.color = '#2ecc71';
+            tokenEl.textContent = `Token: ${_default_client.token.slice(0, 20)}...`;
+        } else {
+            statusEl.textContent = '🔴 Not logged in';
+            statusEl.style.color = '#e74c3c';
+            tokenEl.textContent = 'Token: none';
+        }
+    }
+
+    /** Display JSON Data In A Specific Output Div. */
+    function showOutput(divId, data, isError = false) {
+        const el = document.getElementById(divId);
+        el.textContent = JSON.stringify(data, null, 2);
+        el.className = 'output' + (isError ? ' error' : '');
+        if (!isError && data && data.message) {
+            showToast(data.message, 'success');
+        }
+    }
+
+    // ---------- Authentication UI ----------
+
+    /** Handle Login Form Submission. */
+    async function login() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const password = document.getElementById('loginPassword').value.trim();
+        if (!email || !password) {
+            showToast('Enter email and password', 'error');
+            return;
+        }
+        const [data, status] = await signin(email, password);
+        if (status === 200) {
+            showToast('Login successful!', 'success');
+            updateStatus();
+            showOutput('profileOutput', { message: 'Login successful!', user: data.user });
+        } else {
+            showToast('Login failed: ' + (data.error || data.message || 'Unknown'), 'error');
+            showOutput('profileOutput', data, true);
+        }
+    }
+
+    /** Quick Login With Pre-filled Credentials. */
+    function quickLogin(email, password) {
+        document.getElementById('loginEmail').value = email;
+        document.getElementById('loginPassword').value = password;
+        login();
+    }
+
+    /** Logout: Clear Token And Update UI. */
+    function logout() {
+        _default_client.token = null;
+        _default_client.user = null;
+        updateStatus();
+        showToast('Logged out', 'info');
+        // Clear All Output Divs.
+        const outputIds = [
+            'profileOutput', 'searchOutput', 'summaryOutput', 'holdsOutput',
+            'listOutput', 'tagOutput', 'suggestionOutput', 'circulationOutput',
+            'addBookOutput', 'suggestionMgmtOutput', 'allHoldsOutput', 'messageOutput'
+        ];
+        outputIds.forEach(id => {
+            document.getElementById(id).textContent = '';
+            document.getElementById(id).className = 'output';
+        });
+    }
+
+    /** Handle User Registration. */
+    async function register() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const password = document.getElementById('regPassword').value.trim();
+        const role = document.getElementById('regRole').value;
+        if (!name || !email || !password) {
+            showToast('All fields required', 'error');
+            return;
+        }
+        const [data, status] = await signup(name, email, password, role);
+        showOutput('profileOutput', data, status !== 201);
+        if (status === 201) showToast('Registration successful!', 'success');
+    }
+
+    // ---------- Profile UI ----------
+
+    /** Fetch And Display The User's Profile. */
+    async function getProfile() {
+        const [data, status] = await get_profile();
+        showOutput('profileOutput', data, status !== 200);
+    }
+
+    /** Update The User's Profile With A Sample Contact Info. */
+    async function updateProfile() {
+        const [data, status] = await update_profile(null, '123 Test St, City');
+        showOutput('profileOutput', data, status !== 200);
+        if (status === 200) showToast('Profile updated', 'success');
+    }
+
+    // ---------- Search UI ----------
+
+    /** Search Books Using The Provided Query. */
+    async function searchBooks() {
+        const query = document.getElementById('searchQuery').value.trim();
+        if (!query) {
+            showToast('Enter a search term', 'error');
+            return;
+        }
+        const [data, status] = await search_books(query);
+        showOutput('searchOutput', data, status !== 200);
+    }
+
+    // ---------- Summary UI ----------
+
+    /** Get Active Loans Summary. */
+    async function getSummary() {
+        const [data, status] = await get_summary();
+        showOutput('summaryOutput', data, status !== 200);
+    }
+
+    // ---------- Holds UI ----------
+
+    /** Place A Hold On A Book. */
+    async function placeHold() {
+        const bookId = document.getElementById('holdBookId').value;
+        if (!bookId) {
+            showToast('Enter Book ID', 'error');
+            return;
+        }
+        const [data, status] = await place_hold(parseInt(bookId));
+        showOutput('holdsOutput', data, status !== 201);
+        if (status === 201) showToast('Hold placed!', 'success');
+    }
+
+    /** Get The User's Own Holds. */
+    async function getMyHolds() {
+        const [data, status] = await get_my_holds();
+        showOutput('holdsOutput', data, status !== 200);
+    }
+
+    /** Cancel A Hold. */
+    async function cancelHold() {
+        const holdId = document.getElementById('cancelHoldId').value;
+        if (!holdId) {
+            showToast('Enter Hold ID', 'error');
+            return;
+        }
+        const [data, status] = await cancel_hold(parseInt(holdId));
+        showOutput('holdsOutput', data, status !== 200);
+        if (status === 200) showToast('Hold cancelled', 'success');
+    }
+
+    // ---------- Lists UI ----------
+
+    /** Create A New Reading List. */
+    async function createList() {
+        const name = document.getElementById('listName').value.trim();
+        if (!name) {
+            showToast('Enter list name', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.create_list(name);
+        showOutput('listOutput', data, status !== 201);
+        if (status === 201) showToast('List created', 'success');
+    }
+
+    /** Get All Lists For The User. */
+    async function getLists() {
+        const [data, status] = await _default_client.get_lists();
+        showOutput('listOutput', data, status !== 200);
+    }
+
+    /** Add A Book To A List. */
+    async function addListItem() {
+        const listId = document.getElementById('addListItemListId').value;
+        const bookId = document.getElementById('addListItemBookId').value;
+        if (!listId || !bookId) {
+            showToast('Enter List ID and Book ID', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.add_list_item(parseInt(listId), parseInt(bookId));
+        showOutput('listOutput', data, status !== 201);
+        if (status === 201) showToast('Book added to list', 'success');
+    }
+
+    /** Get Books In A Specific List. */
+    async function getListItems() {
+        const listId = document.getElementById('getListItemsListId').value;
+        if (!listId) {
+            showToast('Enter List ID', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.get_list_items(parseInt(listId));
+        showOutput('listOutput', data, status !== 200);
+    }
+
+    // ---------- Tags UI ----------
+
+    /** Add A Tag To A Book. */
+    async function addTag() {
+        const bookId = document.getElementById('tagBookId').value;
+        const tag = document.getElementById('tagText').value.trim();
+        if (!bookId || !tag) {
+            showToast('Enter Book ID and tag', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.add_tag(parseInt(bookId), tag);
+        showOutput('tagOutput', data, status !== 201);
+        if (status === 201) showToast('Tag added', 'success');
+    }
+
+    /** Get All Tags Created By The User. */
+    async function getTags() {
+        const [data, status] = await _default_client.get_tags();
+        showOutput('tagOutput', data, status !== 200);
+    }
+
+    /** Delete A Tag. */
+    async function deleteTag() {
+        const tagId = document.getElementById('deleteTagId').value;
+        if (!tagId) {
+            showToast('Enter Tag ID', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.delete_tag(parseInt(tagId));
+        showOutput('tagOutput', data, status !== 200);
+        if (status === 200) showToast('Tag deleted', 'success');
+    }
+
+    // ---------- Suggestions UI (Student) ----------
+
+    /** Submit A New Purchase Suggestion. */
+    async function submitSuggestion() {
+        const title = document.getElementById('suggestionTitle').value.trim();
+        const author = document.getElementById('suggestionAuthor').value.trim();
+        const notes = document.getElementById('suggestionNotes').value.trim();
+        if (!title) {
+            showToast('Enter title', 'error');
+            return;
+        }
+        const [data, status] = await _default_client.create_suggestion(title, author, notes);
+        showOutput('suggestionOutput', data, status !== 201);
+        if (status === 201) showToast('Suggestion submitted', 'success');
+    }
+
+    /** Get Suggestions Submitted By The User. */
+    async function getMySuggestions() {
+        const [data, status] = await _default_client.get_my_suggestions();
+        showOutput('suggestionOutput', data, status !== 200);
+    }
+
+    // ---------- Librarian Circulation UI ----------
+
+    /** Checkout A Book. */
+    async function checkout() {
+        const userId = document.getElementById('checkoutUserId').value;
+        const copyId = document.getElementById('checkoutCopyId').value;
+        if (!userId || !copyId) {
+            showToast('Enter User ID and Copy ID', 'error');
+            return;
+        }
+        const [data, status] = await checkout(parseInt(userId), parseInt(copyId));
+        showOutput('circulationOutput', data, status !== 201);
+        if (status === 201) showToast('Checkout successful!', 'success');
+    }
+
+    /** Return A Book. */
+    async function returnBook() {
+        const loanId = document.getElementById('returnLoanId').value;
+        if (!loanId) {
+            showToast('Enter Loan ID', 'error');
+            return;
+        }
+        const [data, status] = await return_book(parseInt(loanId));
+        showOutput('circulationOutput', data, status !== 200);
+        if (status === 200) showToast('Book returned', 'success');
+    }
+
+    // ---------- Librarian Book Management UI ----------
+
+    /** Add A New Book. */
+    async function addBook() {
+        const title = document.getElementById('addTitle').value.trim();
+        if (!title) {
+            showToast('Title is required', 'error');
+            return;
+        }
+        const options = {
+            isbn: document.getElementById('addIsbn').value.trim() || null,
+            call_number: document.getElementById('addCallNumber').value.trim() || null,
+            publisher: document.getElementById('addPublisher').value.trim() || null,
+            published_date: document.getElementById('addPublishedDate').value || null,
+            location: document.getElementById('addLocation').value.trim() || null,
+            total_copies: parseInt(document.getElementById('addTotalCopies').value) || 1,
+        };
+        const [data, status] = await add_book(title, options);
+        showOutput('addBookOutput', data, status !== 201);
+        if (status === 201) showToast('Book added!', 'success');
+    }
+
+    // ---------- Librarian Suggestion Management UI ----------
+
+    /** View All Purchase Suggestions. */
+    async function viewAllSuggestions() {
+        const [data, status] = await get_all_suggestions();
+        showOutput('suggestionMgmtOutput', data, status !== 200);
+    }
+
+    /** Update The Status Of A Suggestion. */
+    async function updateSuggestion() {
+        const id = document.getElementById('updateSuggestionId').value;
+        const status = document.getElementById('updateSuggestionStatus').value;
+        if (!id) {
+            showToast('Enter Suggestion ID', 'error');
+            return;
+        }
+        const [data, st] = await update_suggestion(parseInt(id), status);
+        showOutput('suggestionMgmtOutput', data, st !== 200);
+        if (st === 200) showToast('Suggestion updated', 'success');
+    }
+
+    // ---------- Librarian View All Holds UI ----------
+
+    /** View All Pending Holds. */
+    async function viewAllHolds() {
+        const [data, status] = await get_all_holds();
+        showOutput('allHoldsOutput', data, status !== 200);
+    }
+
+    // ---------- Messages UI ----------
+
+    /** Get All Messages For The User. */
+    async function getMessages() {
+        const [data, status] = await get_messages();
+        showOutput('messageOutput', data, status !== 200);
+    }
+
+    /** Mark A Message As Read. */
+    async function markMessageRead() {
+        const msgId = document.getElementById('markReadMessageId').value;
+        if (!msgId) {
+            showToast('Enter Message ID', 'error');
+            return;
+        }
+        const [data, status] = await mark_message_read(parseInt(msgId));
+        showOutput('messageOutput', data, status !== 200);
+        if (status === 200) showToast('Marked as read', 'success');
+    }
+
+    // ------------------------------------------------------------
+    // Initialization
+    // ------------------------------------------------------------
+    // Update The Status Bar On Page Load.
+    updateStatus();
+</script>
+</body>
+</html>
